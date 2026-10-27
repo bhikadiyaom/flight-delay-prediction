@@ -1,0 +1,49 @@
+# Render blueprint for the API + ML service (the React client goes on Vercel, see client/vercel.json).
+# New > Blueprint > pick this repo. Render then asks for every variable marked `sync: false`.
+# NOTE: the blueprint file must be at the repo root for Render's UI to auto-detect it; this copy lives in server/ for
+# discoverability, so either point Render at it explicitly ("Blueprint file path") or copy it to ./render.yaml.
+services:
+  - type: web
+    name: fdp-ml-service
+    runtime: docker
+    dockerfilePath: ./ml-service/Dockerfile
+    dockerContext: .
+    plan: free            # 512 MB: keep XGBoost-only serving and a small DuckDB limit (Decision 7)
+    # no healthCheckPath on purpose: /health needs the X-Internal-Key header, which Render health checks cannot send
+    # (the Dockerfile HEALTHCHECK and the server's /api/v1/health report the ML service state instead)
+    envVars:
+      - key: INTERNAL_API_KEY
+        generateValue: true        # Render creates it; copy the same value into the server's ML_INTERNAL_KEY
+      - key: DUCKDB_MEMORY_LIMIT
+        value: 300MB
+      - key: PARQUET_URL
+        sync: false                # optional: URL of the analytics-data .tar.gz (scripts/pack-data.py)
+      - key: PARQUET_SHA256
+        sync: false
+
+  - type: web
+    name: fdp-server
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false                # MongoDB Atlas connection string (URL-encode the password)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ML_INTERNAL_KEY
+        sync: false                # must equal fdp-ml-service INTERNAL_API_KEY
+      - key: ML_SERVICE_URL
+        sync: false                # https://fdp-ml-service.onrender.com (Render gives the exact hostname)
+      - key: CLIENT_URL
+        sync: false                # your Vercel URL, no trailing slash, comma separate several
+      - key: AVIATIONSTACK_KEY
+        sync: false
+      - key: AVIATIONSTACK_MONTHLY_LIMIT
+        value: "100"
+      - key: ADMIN_EMAILS
+        sync: false

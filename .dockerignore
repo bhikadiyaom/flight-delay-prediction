@@ -1,0 +1,19 @@
+# The ml-service image is built from the repo root: keep the context small (the data folder is huge and never baked in).
+.git
+**/node_modules
+**/venv
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.env
+client
+server
+docs
+.github
+data/*.csv
+data/processed
+ml-service/notebooks
+ml-service/tests
+ml-service/artifacts_sample
+ml-service/venv
+ml-service/full_train.log

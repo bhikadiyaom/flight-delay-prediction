@@ -1,0 +1,10 @@
+# Shell scripts run inside Linux containers / CI: they must keep LF even when checked out on Windows
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+nginx.conf text eol=lf
+# binary
+*.png binary
+*.parquet binary
+*.joblib binary

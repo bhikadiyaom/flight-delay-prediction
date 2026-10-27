@@ -1,8 +1,11 @@
 -r requirements.txt
-imbalanced-learn
+# training / notebooks / tests (torch is offline-only: the neural net is a comparison model, never served)
+imbalanced-learn==0.14.2
 matplotlib
 seaborn
 jupyter
-torch
-pytest
-httpx
+nbconvert
+ipykernel
+torch==2.14.1
+pytest==9.1.1
+httpx==0.28.1

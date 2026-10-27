@@ -1,13 +1,16 @@
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
-pandas
-numpy
-pyarrow
-duckdb
-scikit-learn
-xgboost
-shap
-joblib
-python-dotenv
+# Runtime dependencies, pinned to the versions the committed model artifacts were trained and tested with.
+# xgboost + scikit-learn MUST match: the .joblib models and isotonic calibrators are pickles of these exact versions
+# (the service logs a warning if xgboost differs from manifest.json). Python 3.11.
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.16.1
+pandas==3.1.0
+numpy==2.4.6
+pyarrow==26.0.0
+duckdb==2.0.0
+scikit-learn==1.9.1
+xgboost==3.2.0
+shap==0.51.0
+joblib==1.6.0
+python-dotenv==1.2.4

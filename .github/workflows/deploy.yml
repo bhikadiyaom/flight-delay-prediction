@@ -1,0 +1,59 @@
+name: Deploy
+
+# Runs only after CI succeeded on main. Every step is skipped (not failed) when its secret is not configured, so the
+# workflow is safe to keep enabled before you have set up Render / Vercel.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Trigger Render deploys (ML service, then API)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      RENDER_ML_DEPLOY_HOOK: ${{ secrets.RENDER_ML_DEPLOY_HOOK }}
+      RENDER_SERVER_DEPLOY_HOOK: ${{ secrets.RENDER_SERVER_DEPLOY_HOOK }}
+    steps:
+      - name: Deploy ML service
+        run: |
+          if [ -z "$RENDER_ML_DEPLOY_HOOK" ]; then echo "RENDER_ML_DEPLOY_HOOK not set: skipping"; exit 0; fi
+          curl -fsS -X POST "$RENDER_ML_DEPLOY_HOOK" >/dev/null && echo "ML service deploy triggered"
+      - name: Deploy API server
+        run: |
+          if [ -z "$RENDER_SERVER_DEPLOY_HOOK" ]; then echo "RENDER_SERVER_DEPLOY_HOOK not set: skipping"; exit 0; fi
+          curl -fsS -X POST "$RENDER_SERVER_DEPLOY_HOOK" >/dev/null && echo "API deploy triggered"
+
+  vercel:
+    name: Deploy client to Vercel
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build and deploy
+        working-directory: client
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Vercel secrets not set: skipping"; exit 0
+          fi
+          npm i -g vercel@latest
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
