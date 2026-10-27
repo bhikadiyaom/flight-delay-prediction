@@ -1,0 +1,33 @@
+{
+  "model_name": "xgboost",
+  "task": "regressor",
+  "artifact": "xgb_delay_reg.joblib",
+  "winsor_cap_minutes": 484.0,
+  "objective": "reg:absoluteerror",
+  "min_minutes": 15.0,
+  "best_iteration": 85,
+  "n_train": 1023505,
+  "n_valid": 104699,
+  "n_test": 258484,
+  "validation": {
+    "mae": 41.115806579589844,
+    "rmse": 78.72466110200158,
+    "r2": -0.0652623176574707
+  },
+  "test": {
+    "mae": 35.90819549560547,
+    "rmse": 71.91481913303753,
+    "r2": -0.06538236141204834
+  },
+  "test_vs_raw_unwinsorized": {
+    "mae": 38.79301452636719,
+    "rmse": 97.48284103817964,
+    "r2": -0.04639756679534912
+  },
+  "baseline_median_test": {
+    "mae": 36.474690889958374,
+    "rmse": 71.84351482384157,
+    "r2": -0.06327071895179182
+  },
+  "seconds": 32.9
+}

@@ -161,7 +161,7 @@ Recommended low-effort set: SHAP + gauge + risk map + delay-cause + trends.
 - [ ] Server: cacheService, aviationStackService, openMeteoService, mlClientService, flight/prediction/analytics/savedSearch/admin controllers+routes, rateLimiter, upload, alertService, riskAlertJob, tests
 - [x] Phase 1 monorepo scaffold (empty files except seeded configs); ml-service venv on Python 3.11
 - [x] Phase 2 dataset: `training/config.py` real column map + `training/data_cleaning.py --to-parquet` run OK (see 15b)
-- [ ] ML training: ~~config, data_cleaning (parquet)~~ (done),  feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background
+- [x] ML training (group A): config, data_cleaning, feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background, shared feature_builder/holidays/weather_severity, 7 notebooks; `tests/test_feature_builder.py` passes (6). See 15c.
 - [ ] ML serving: config, security, main (lifespan), schemas, model_loader, feature_builder, weather_severity, predictor, explainer, duckdb_service, routes
 - [ ] Client: theme, auth, axios, queryClient, routes, layouts, common components, pages, charts, map
 - [ ] Docker + docker-compose + CI + deploy configs
@@ -194,11 +194,24 @@ Deviations from sections 9/10 (none touch section 4):
 - No scheduled clock time or flight number: time feature = `DepTime_label` (Night/Morning/Afternoon/Evening). `/predict` maps `scheduled_departure.hour` to a label.
 - No distance in miles: computed by haversine from airport coordinates (`distance_miles`).
 - Leakage (never features): Dep_Delay, Dep_Delay_Tag, Dep_Delay_Type, Arr_Delay_Type, Flight_Duration, Delay_* causes. Tail_Number is an identifier, not a feature.
-- Aircraft columns (Manufacturer, Model, Aicraft_age [sic]) exist only for non-cancelled flights: optional features, missing -> "unknown".
+- Aircraft columns (Manufacturer, Model, Aicraft_age [sic]) exist only for non-cancelled flights, so they would leak the cancel label (NULL <=> cancelled). CORRECTION to the earlier plan: they are NOT features (also `PredictRequest` cannot supply them).
 - Cancelled rows have no distinguishing columns, so exact-duplicate removal dropped 945 of them (about 1%); 43 other rows dropped as invalid. Final: 6,830,352 flights, 86,991 cancelled, 1,386,688 with arr_delay >= 15.
 - Delay rate by month: about 22% Jan-Sep (peak 28.6% Jul), about 14-16% Oct-Dec. Expect a test-vs-validation shift (see section 15 row on time-split).
 - Parquet is month-partitioned: `data/processed/flights/flights_MM.parquet` (glob in `training/config.py`), built month-by-month in DuckDB with a 1.5 GB memory cap because the dev machine has ~8 GB RAM and ~3.5 GB free disk.
 - DuckDB 2.x: relations have no `.fetchone()`; use `con.execute(...).fetchone()`.
+
+### 15c. ML pipeline as built (Phase 3A, 2026-10-27)
+Features (33, exact order in `app/services/feature_builder.py::FEATURE_COLUMNS` and `manifest.json`): time-of-day idx, weekday, weekend, holiday flag + distance to nearest US federal holiday (rule based, any year), distance_miles, frequency-encoded airline/origin/dest/route, avg daily flights per route/origin (congestion), 28-day rolling delay + cancel rate for airline/origin/dest, smoothed static route delay rate and origin x time-of-day delay rate, weather bands (precip, snow, wind, freeze flag, severity) for origin and destination + mean temp, `weather_missing`.
+Deviations / choices (none change section 4):
+- **History features (Decision 6 "rolling history, train only")**: every lookup is fitted on Jan-Aug only (September stays unseen). Rolling rates use PRIOR days only (28-day window, shrinkage k=50 to the train prior). Jan-Sep rows use the true rolling value; Oct-Dec test rows and all serving use the shipped snapshot `lookups/rolling_snapshot.json` taken on 2023-10-01 (what a deployed model without a daily refresh sees, so it is deliberately a bit stale; mean test rolling delay rate 0.188 vs actual 0.147). A daily refresh job is the obvious production improvement.
+- **`month` is not a feature**: training covers Jan-Aug so Oct-Dec values are unseen and cannot be extrapolated; ablation showed neutral for delay and +0.02 validation AUC for cancel without it.
+- Hour -> label mapping used at serving: Night 00-05, Morning 06-11, Afternoon 12-17, Evening 18-23 (matches the label shares in the data).
+- Cancel classifier: shallower trees + AUC stopping (the first run with aucpr stopped at iteration 0). Cancel base rate falls from 1.6% (train) to 0.3% (test), so precision is low by construction; probabilities are still calibrated (Brier 0.0031).
+- Regressor: absolute-error objective on the p99-winsorized target (cap 484 min), predictions clipped to >= 15. A log-transform variant lost to the median baseline. The signal is weak without departure information (R2 slightly negative on the heavy tail, MAE 35.9 vs 36.5 for the median baseline): the UI should present it as "typical delay if delayed".
+- Models are time-split honest: fit on Jan-Aug (4.46M delay rows), early stop + isotonic on September, tested on Oct-Dec (1.73M rows). Random-split XGBoost (not deployable) AUC 0.745 vs 0.661 time split: the gap is seasonality/weather-episode leakage plus the Oct-Dec base-rate drop.
+- Test results, delay task (Oct-Dec): logreg AUC 0.646 / F1 0.317; random forest (300k rows) 0.657 / 0.325; **xgboost 0.661 / 0.330 (production, Brier 0.124 calibrated vs 0.201 raw)**; neural net 0.651 / 0.321. Cancel xgboost AUC 0.706. All models cluster within 0.015 AUC: the limit is information (no clock time, no departure state), not model class.
+- Artifacts (models, calibrators, encoders, lookups, metrics, SHAP background) are COMMITTED (small) so the ml-service image can be built from the repo; raw/processed data and `artifacts_sample/` are not.
+- Run order: `python -m training.data_cleaning --to-parquet` -> `training.feature_engineering` -> `train_xgboost` -> `train_regressor` -> `train_baseline` -> `train_random_forest` -> `train_neural_net` -> `train_xgboost --random-split` -> `generate_shap_background` -> `compare_models`. Use `--sample 0.15` on any trainer for a proving run (writes to `artifacts_sample/`). Always run from `ml-service/` (set `PYTHONPATH=.` for ad-hoc scripts).
 
 ## 16. HOW TO CHANGE SOMETHING
 1. Find the decision number in section 4. Tell the assistant: "Changing Decision N from X to Y."

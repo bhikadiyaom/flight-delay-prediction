@@ -19,6 +19,21 @@ ENCODERS_DIR = ARTIFACTS_DIR / "encoders"
 LOOKUPS_DIR = ARTIFACTS_DIR / "lookups"
 METRICS_DIR = ARTIFACTS_DIR / "metrics"
 
+FEATURES_DIR = ROOT_DIR / "data" / "processed" / "features"   # features_MM.parquet (train/serve-shared builder output)
+SAMPLE_DIR = ML_DIR / "artifacts_sample"                       # outputs of --sample proving runs (gitignored)
+
+
+def run_dirs(sample: float | None = None) -> tuple[Path, Path]:
+    """(models_dir, metrics_dir) for a run. Sample runs never touch the real artifacts."""
+    if sample:
+        m, x = SAMPLE_DIR / "models", SAMPLE_DIR / "metrics"
+    else:
+        m, x = MODELS_DIR, METRICS_DIR
+    m.mkdir(parents=True, exist_ok=True)
+    x.mkdir(parents=True, exist_ok=True)
+    return m, x
+
+
 # ---------------------------------------------------------------- raw source files
 RAW_FLIGHTS_CSV = DATA_DIR / "US_flights_2023.csv"            # non-cancelled, non-diverted flights
 RAW_CANCELLED_CSV = DATA_DIR / "Cancelled_Diverted_2023.csv"  # cancelled + diverted flights

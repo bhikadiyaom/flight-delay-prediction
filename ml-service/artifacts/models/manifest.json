@@ -1,1 +1,84 @@
-{}
+{
+  "version": "v20261027-d4c7d1",
+  "trained_at": "2026-10-27T08:21:39+00:00",
+  "xgboost_version": "3.2.0",
+  "feature_columns": [
+    "dep_time_idx",
+    "day_of_week",
+    "is_weekend",
+    "is_holiday",
+    "holiday_distance",
+    "distance_miles",
+    "airline_freq",
+    "origin_freq",
+    "dest_freq",
+    "route_freq",
+    "route_daily_avg",
+    "origin_daily_avg",
+    "airline_delay_roll",
+    "origin_delay_roll",
+    "dest_delay_roll",
+    "airline_cancel_roll",
+    "origin_cancel_roll",
+    "dest_cancel_roll",
+    "route_delay_rate",
+    "origin_time_delay_rate",
+    "o_prcp_band",
+    "o_snow_band",
+    "o_wind_band",
+    "o_freeze",
+    "o_severity",
+    "o_tavg",
+    "d_prcp_band",
+    "d_snow_band",
+    "d_wind_band",
+    "d_freeze",
+    "d_severity",
+    "d_tavg",
+    "weather_missing"
+  ],
+  "dep_time_labels": [
+    "Night",
+    "Morning",
+    "Afternoon",
+    "Evening"
+  ],
+  "models": {
+    "delay_clf": {
+      "file": "xgb_delay_clf.joblib",
+      "calibrator": "calibrator_delay.joblib",
+      "threshold": 0.20250320924261875,
+      "production": true
+    },
+    "cancel_clf": {
+      "file": "xgb_cancel_clf.joblib",
+      "calibrator": "calibrator_cancel.joblib",
+      "threshold": 0.0769578995020371,
+      "production": true
+    },
+    "delay_reg": {
+      "file": "xgb_delay_reg.joblib",
+      "objective": "reg:absoluteerror",
+      "min_minutes": 15.0,
+      "winsor_cap_minutes": 484.0,
+      "production": true
+    }
+  },
+  "risk_levels": {
+    "delay": {
+      "medium": 0.2,
+      "high": 0.4
+    },
+    "cancel": {
+      "medium": 0.03,
+      "high": 0.08
+    }
+  },
+  "delay_threshold_minutes": 15,
+  "shap_background": "shap_background.parquet",
+  "split": {
+    "train": "Jan-Aug (fit)",
+    "validation": "September (early stopping + isotonic calibration)",
+    "test": "Oct-Dec (held out in time)"
+  }
+}

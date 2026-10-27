@@ -1,0 +1,42 @@
+{
+  "description": "random 80/20 split over Jan-Dec (leaks seasonality + same-day conditions); NOT deployable",
+  "n_rows": 2697343,
+  "test": {
+    "threshold": 0.5514121651649475,
+    "metrics": {
+      "accuracy": 0.7433457714901134,
+      "precision": 0.40981911123407505,
+      "recall": 0.5600889473068232,
+      "f1": 0.4733132229927382,
+      "roc_auc": 0.7451137831253167,
+      "pr_auc": 0.4654959007444947,
+      "brier": 0.19935427606105804,
+      "positive_rate": 0.20590061708828497
+    },
+    "per_class": {
+      "0": {
+        "precision": 0.8739523761617694,
+        "recall": 0.7908621076023828,
+        "f1": 0.8303337397601878,
+        "support": 428392
+      },
+      "1": {
+        "precision": 0.40981911123407505,
+        "recall": 0.5600889473068232,
+        "f1": 0.4733132229927382,
+        "support": 111077
+      }
+    },
+    "confusion_matrix": [
+      [
+        338799,
+        89593
+      ],
+      [
+        48864,
+        62213
+      ]
+    ]
+  },
+  "seconds": 129.8
+}
