@@ -163,7 +163,8 @@ Recommended low-effort set: SHAP + gauge + risk map + delay-cause + trends.
 - [x] Phase 2 dataset: `training/config.py` real column map + `training/data_cleaning.py --to-parquet` run OK (see 15b)
 - [x] ML training (group A): config, data_cleaning, feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background, shared feature_builder/holidays/weather_severity, 7 notebooks; `tests/test_feature_builder.py` passes (6). See 15c.
 - [x] ML serving (group B): config, security, main (lifespan), schemas, model_loader, feature_builder, weather_severity, predictor, explainer, metrics_service, duckdb_service, airport_lookup, 4 routers; 49 tests pass; service started and every route hit live. See 15d.
-- [ ] Client: theme, auth, axios, queryClient, routes, layouts, common components, pages, charts, map
+- [x] Client (group D): theme, auth, axios, queryClient, routes, layouts, common components, 14 pages, 12 charts, map, gauge, SHAP view, PWA; 62 tests pass, lint clean, build OK, verified in a real browser (desktop dark/light + mobile). See 15f.
+- [x] Stretch features done: SHAP in UI, probability gauge, risk map, delay-cause chart, historical trends, CSV bulk upload, email alerts (server job), PWA
 - [ ] Docker + docker-compose + CI + deploy configs
 - [ ] Docs (architecture, api-spec, ml-methodology, report)
 Suggested next order: ML training (longest lead time, everything else depends on artifacts) -> ML serving -> remaining server -> client.
@@ -237,6 +238,18 @@ Deviations / choices (none change section 4):
 - Rate limits per 15 min: predictions 30 anonymous / 120 logged in, login+register 20 per IP, global 600; all env-configurable. `trust proxy` is on in production only.
 - Bug found by tests and fixed: `Date.parse('2026-02-30')` silently rolls over, so dates are validated by round-tripping the calendar parts.
 - Needs your input later: an AviationStack key and a MongoDB Atlas URI. Until then the app runs on demo flights and local Mongo.
+
+### 15f. React client as built (Phase 3D)
+Run: start `server` + `ml-service` (see 15d/15e), then `cd client; npm run dev` (port 5173, strict; `server/.env` CLIENT_URL must contain `http://localhost:5173`). `client/.env` (git-ignored) holds `VITE_API_URL=http://localhost:5000`. Tests: `npm test` (62 pass, Vitest + Testing Library). `npm run lint` clean. `npm run build` entry chunk 45 KB gzip; recharts (115 KB) and leaflet (45 KB) are separate lazy chunks; every page is its own chunk.
+Design (ui-ux-pro-max "data-dense dashboard"): blue primary + amber accent, Fira Sans / Fira Code (Google Fonts link), Lucide icons, Tailwind 3.4 `dark:` classes. Light/dark verified on real pages; chart colours come from `chartTheme(resolved)` because Recharts ignores `dark:`.
+What exists: provider order per section 11; theme (no-flash inline script, cycle light->dark->system, persisted `fdp-theme`, OS listener only in `system`, saved to `PATCH /users/me` when logged in, account theme adopted on login); Bearer-token axios client + `auth:expired` event (401 only with a token); AuthContext rehydrates via `/users/me` and `ProtectedRoute` waits for it; AdminRoute shows an "Admins only" page. 14 pages + AirportInput combobox, probability gauge (role=meter), SHAP view, risk map (react-leaflet + OSM, dark-mode tile filter), model comparison with ROC/calibration/confusion matrix, bulk CSV with template + results export (formula-safe), saved searches with alert switch + threshold, admin tabs. PWA: manifest, icons, conservative service worker (assets cache-first, navigation network-first, API never cached), registered in production builds only.
+Choices / findings (none change section 4):
+- Sessions: `GET /users/me` 401 clears the token and shows a "Session expired" toast; non-401 failures keep the token so a server blip does not log anyone out.
+- The page URL is the source of truth for searches (`/historical?origin=&dest=&date=&airline=`, `/live?flight=` or `?origin=&destination=`, `/predict?origin=&destination=`) so searches are shareable and saved-search "Run" is a plain link.
+- Only the 15 airlines in the training data are offered (sent as IATA codes). Predictions never claim certainty: result card explains calibration and the model's blind spots.
+- Verified in a real browser against the live stack: predict (snowy ORD evening -> 55% delay / 6.1% cancel), live DL400 demo flight with real Open-Meteo weather, insights charts, risk map, login redirect-back, saved search create, admin stats, light/dark, 375px mobile drawer. Chart bar heights were checked against the metrics table.
+- Bugs found and fixed while verifying: CSS grid children needed `min-w-0` (the live page overflowed to 549 px on a 375 px phone because card content set the track width); autocomplete flashed stale unfiltered options (removed `placeholderData`); weather fields cramped in the narrow form column.
+- Node 25/26's experimental global `localStorage` shadows jsdom's; `tests/setup.js` installs an in-memory Storage so tests are portable across Node 20-26.
 
 ## 16. HOW TO CHANGE SOMETHING
 1. Find the decision number in section 4. Tell the assistant: "Changing Decision N from X to Y."
