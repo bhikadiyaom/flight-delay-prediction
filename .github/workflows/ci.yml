@@ -15,7 +15,7 @@ permissions:
 jobs:
   ml-service:
     name: ML service (pytest)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ml-service
@@ -33,7 +33,7 @@ jobs:
 
   server:
     name: Server (lint + tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: server
@@ -51,11 +51,19 @@ jobs:
           key: mongod-${{ runner.os }}-v1
       - run: npm ci
       - run: npm run lint
+      # The only external download in the test job is the mongod binary used by mongodb-memory-server. Fetch it first,
+      # with retries, so a network blip cannot fail the run (a persistent failure still fails loudly in the next step).
+      - name: Pre-download mongod (with retries)
+        run: |
+          for i in 1 2 3; do
+            node -e "import('mongodb-memory-server').then(async ({ MongoMemoryServer }) => { const s = await MongoMemoryServer.create(); await s.stop(); })" && break
+            echo "mongod download attempt $i failed, retrying"; sleep 10
+          done
       - run: npm test
 
   client:
     name: Client (lint + tests + build)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: client
@@ -75,7 +83,7 @@ jobs:
 
   docker:
     name: Docker images build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ml-service, server, client]
     steps:
       - uses: actions/checkout@v4
