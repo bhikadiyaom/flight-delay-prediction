@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test tests/",
+    "dev:db": "node scripts/dev-db.js",
+    "test": "node --test --test-concurrency=1",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -32,6 +33,7 @@
     "@eslint/js": "^9.8.0",
     "eslint": "^9.8.0",
     "globals": "^15.9.0",
+    "mongodb-memory-server": "^10.1.2",
     "supertest": "^7.0.0"
   }
 }

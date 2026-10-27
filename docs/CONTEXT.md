@@ -157,8 +157,8 @@ Recommended low-effort set: SHAP + gauge + risk map + delay-cause + trends.
 ## 14. BUILD STATUS (update as you go)
 - [x] Step 1 folder structure   [x] Step 2 decisions 1-12 locked   [ ] `bootstrap.py` run (not on disk; scaffold is rebuilt by hand in Phase 1)
 - NOTE (2026-10-27): earlier checkmarks described code written in a chat that never existed on disk. Everything below is treated as unbuilt until verified.
-- [ ] Server foundation: env, db, cors, app, server, utils, errorHandler, auth/role middleware, validators, models, auth + user controllers/routes, routes/index with /health
-- [ ] Server: cacheService, aviationStackService, openMeteoService, mlClientService, flight/prediction/analytics/savedSearch/admin controllers+routes, rateLimiter, upload, alertService, riskAlertJob, tests
+- [x] Server foundation (group C): env, db, cors, app, server, utils, errorHandler, auth/role middleware, validators, 6 models, auth + user controllers/routes, /health
+- [x] Server services/routes (group C): cacheService, aviationStackService (+quota, mock), openMeteoService, airportDirectory, mlClientService, predictionService, historicalQueryService, flight/prediction/analytics/savedSearch/admin controllers+routes, rateLimiter, CSV upload, alertService, riskAlertJob; 87 tests pass, lint clean, live stack smoke-tested end to end (see 15e)
 - [x] Phase 1 monorepo scaffold (empty files except seeded configs); ml-service venv on Python 3.11
 - [x] Phase 2 dataset: `training/config.py` real column map + `training/data_cleaning.py --to-parquet` run OK (see 15b)
 - [x] ML training (group A): config, data_cleaning, feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background, shared feature_builder/holidays/weather_severity, 7 notebooks; `tests/test_feature_builder.py` passes (6). See 15c.
@@ -221,6 +221,22 @@ Deviations / choices (none change section 4):
 - Startup fails fast: missing artifact, empty manifest, feature-list mismatch, model/feature count mismatch, metrics version != manifest version. Missing flights parquet does NOT fail startup: `analytics_available=false`, `/analytics/{overview,historical,risk-map,trends}` answer 503 (ship the 145 MB parquet or mount it for full functionality; see deployment guide).
 - Observed: first `/predict` 95 ms (SHAP ~7 ms), batch of 500 in 118 ms, cold overview 1.6 s then 47 ms cached; RSS about 300 MB serving, peak 629 MB during a cold analytics scan with the default 1GB DuckDB limit. On a 512 MB host set `DUCKDB_MEMORY_LIMIT=300MB`.
 - Tests: `cd ml-service; set PYTHONPATH=.; venv\Scripts\python -m pytest tests -q` -> 49 pass (auth on every route, contract rules, warnings, batch == single, 500 limit, SQL-injection style inputs, SHAP additivity, fail-fast loading).
+
+### 15e. Node server as built (Phase 3C)
+Run: `cd server; npm run dev:db` (real mongod via mongodb-memory-server, data in `server/.data/mongo`, no install needed) -> `npm run dev`. Tests: `npm test` (87 pass; real in-memory MongoDB + stub servers for ml-service / AviationStack / Open-Meteo). `scripts/e2e-smoke.ps1` walks the live stack. `server/.env` is git-ignored and holds a generated `JWT_SECRET` plus the ml-service key as `ML_INTERNAL_KEY`.
+Deviations / choices (none change section 4):
+- **API JSON is camelCase** (`delayProbability`, `topFactors[].shapValue`, `scheduledDeparture`, weather `temperatureC/precipitationMm/windSpeedKmh/snowfallCm`); `mlClientService` converts to/from the ml-service's snake_case. Historical query uses `dest` as in section 8.
+- **`LiveFlightCache` has two timestamps**: `freshUntil` = logical TTL (flight 5 min, weather 30 min, prediction 10 min, analytics 24 h), `expiresAt` = freshUntil + stale grace (24 h / 24 h / 1 h / 7 d) for the TTL index. A TTL index on the logical expiry would delete entries within a minute and make stale-if-error impossible. Responses carry `source: live|cache|mock`, `stale`, `demo` (true only for mock). Mock data is never cached. Concurrent identical misses share one upstream call.
+- Quota (`ApiQuota`): atomic `findOneAndUpdate` with `used < floor(limit*0.9)`; every upstream attempt counts; at the cap the API is skipped (cache stale -> mock). Verified atomic under 12 concurrent calls (never exceeds 9 of 10).
+- Prediction cache key = airline, route, date+hour, distance, weather rounded to 0.1 (flight number ignored). Every request is still logged to `PredictionLog` (`cached: true` when served from cache). Extra fields: `PredictionLog.cached`, `ModelMetricSnapshot.target`/`prAuc`/`brier`/`r2` (xgboost has a delay and a cancel classifier).
+- Live flight times are treated as airport-local wall clock (any offset in the API string is dropped); the airline is sent to the ml-service as its IATA code. Weather comes from Open-Meteo daily mean/min temperature, precipitation sum, snowfall sum, mean wind (km/h); it never fails a request (null + ml-service warning).
+- Airport coordinates for weather and autocomplete come from the ml-service (`/analytics/airports`), memoised 24 h.
+- Alerts: only `route` and `flight` saved searches can have alerts (airport searches are rejected at validation). The 30-min job (`ALERTS_CRON`) emails when delay probability >= the user's threshold, risk is at least medium, and the risk level changed since the last check; without `SMTP_HOST` emails are logged as JSON. Max 50 saved searches per user.
+- Bulk CSV: required columns `airline,origin,destination,scheduled_departure`; optional `flight_number, distance_miles, origin_|dest_ temperature_c, temperature_min_c, precipitation_mm, wind_speed_kmh, snowfall_cm`. Max 500 rows, 512 KB, `.csv` only, memory storage. Invalid rows are reported by line number, valid rows are predicted. No automatic weather lookup per row (ml-service fills typical values and warns).
+- `/health` is 200 `ok` / 200 `degraded` (ml-service unreachable) / 503 `down` (no DB).
+- Rate limits per 15 min: predictions 30 anonymous / 120 logged in, login+register 20 per IP, global 600; all env-configurable. `trust proxy` is on in production only.
+- Bug found by tests and fixed: `Date.parse('2026-02-30')` silently rolls over, so dates are validated by round-tripping the calendar parts.
+- Needs your input later: an AviationStack key and a MongoDB Atlas URI. Until then the app runs on demo flights and local Mongo.
 
 ## 16. HOW TO CHANGE SOMETHING
 1. Find the decision number in section 4. Tell the assistant: "Changing Decision N from X to Y."

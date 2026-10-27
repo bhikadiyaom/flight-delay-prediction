@@ -22,3 +22,6 @@ data/processed/*
 # ml-service needs them. Only proving runs and logs are ignored.
 ml-service/artifacts_sample/
 ml-service/full_train.log
+
+# local dev Mongo data (npm run dev:db)
+server/.data/

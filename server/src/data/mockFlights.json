@@ -1,0 +1,27 @@
+{
+  "_note": "Demo data used when AviationStack has no key, the monthly quota is nearly used up, or the API fails and nothing is cached. Times are hydrated to today at request time (airport local wall-clock).",
+  "airports": {
+    "JFK": "John F. Kennedy International", "LGA": "LaGuardia", "LAX": "Los Angeles International", "ATL": "Hartsfield-Jackson Atlanta International",
+    "ORD": "Chicago O'Hare International", "SFO": "San Francisco International", "DFW": "Dallas/Fort Worth International",
+    "DEN": "Denver International", "LAS": "Harry Reid International", "PHX": "Phoenix Sky Harbor International",
+    "SEA": "Seattle-Tacoma International", "FLL": "Fort Lauderdale-Hollywood International", "HNL": "Daniel K. Inouye International",
+    "SLC": "Salt Lake City International", "BOS": "Boston Logan International"
+  },
+  "flights": [
+    { "flightIata": "AA100", "airline": { "name": "American Airlines", "iata": "AA" }, "origin": "JFK", "destination": "LAX", "depHour": 8, "depMinute": 0, "durationMin": 385, "status": "scheduled", "delayMinutes": 0, "terminal": "8", "gate": "B22", "aircraft": "B77W" },
+    { "flightIata": "B6623", "airline": { "name": "JetBlue Airways", "iata": "B6" }, "origin": "JFK", "destination": "LAX", "depHour": 7, "depMinute": 45, "durationMin": 380, "status": "delayed", "delayMinutes": 25, "terminal": "5", "gate": "A12", "aircraft": "A321" },
+    { "flightIata": "AA2200", "airline": { "name": "American Airlines", "iata": "AA" }, "origin": "DFW", "destination": "ORD", "depHour": 14, "depMinute": 20, "durationMin": 135, "status": "scheduled", "delayMinutes": 0, "terminal": "A", "gate": "A15", "aircraft": "A321" },
+    { "flightIata": "DL400", "airline": { "name": "Delta Air Lines", "iata": "DL" }, "origin": "ATL", "destination": "JFK", "depHour": 9, "depMinute": 30, "durationMin": 135, "status": "scheduled", "delayMinutes": 0, "terminal": "S", "gate": "T4", "aircraft": "B739" },
+    { "flightIata": "DL2500", "airline": { "name": "Delta Air Lines", "iata": "DL" }, "origin": "ATL", "destination": "JFK", "depHour": 19, "depMinute": 10, "durationMin": 140, "status": "scheduled", "delayMinutes": 0, "terminal": "S", "gate": "B8", "aircraft": "A321" },
+    { "flightIata": "DL1200", "airline": { "name": "Delta Air Lines", "iata": "DL" }, "origin": "ATL", "destination": "LGA", "depHour": 16, "depMinute": 45, "durationMin": 130, "status": "active", "delayMinutes": 10, "terminal": "S", "gate": "C21", "aircraft": "B712" },
+    { "flightIata": "UA200", "airline": { "name": "United Airlines", "iata": "UA" }, "origin": "ORD", "destination": "SFO", "depHour": 11, "depMinute": 15, "durationMin": 270, "status": "scheduled", "delayMinutes": 0, "terminal": "1", "gate": "C18", "aircraft": "B789" },
+    { "flightIata": "UA1500", "airline": { "name": "United Airlines", "iata": "UA" }, "origin": "DEN", "destination": "LAX", "depHour": 15, "depMinute": 30, "durationMin": 150, "status": "scheduled", "delayMinutes": 0, "terminal": "B", "gate": "B40", "aircraft": "A320" },
+    { "flightIata": "WN500", "airline": { "name": "Southwest Airlines", "iata": "WN" }, "origin": "DEN", "destination": "LAS", "depHour": 13, "depMinute": 40, "durationMin": 110, "status": "scheduled", "delayMinutes": 0, "terminal": "C", "gate": "C30", "aircraft": "B738" },
+    { "flightIata": "WN2200", "airline": { "name": "Southwest Airlines", "iata": "WN" }, "origin": "LAS", "destination": "PHX", "depHour": 18, "depMinute": 5, "durationMin": 75, "status": "delayed", "delayMinutes": 40, "terminal": "1", "gate": "D6", "aircraft": "B737" },
+    { "flightIata": "AS3", "airline": { "name": "Alaska Airlines", "iata": "AS" }, "origin": "SEA", "destination": "JFK", "depHour": 6, "depMinute": 10, "durationMin": 305, "status": "scheduled", "delayMinutes": 0, "terminal": "N", "gate": "N12", "aircraft": "B739" },
+    { "flightIata": "NK300", "airline": { "name": "Spirit Airlines", "iata": "NK" }, "origin": "FLL", "destination": "ATL", "depHour": 12, "depMinute": 0, "durationMin": 115, "status": "scheduled", "delayMinutes": 0, "terminal": "4", "gate": "G5", "aircraft": "A320" },
+    { "flightIata": "F9800", "airline": { "name": "Frontier Airlines", "iata": "F9" }, "origin": "DEN", "destination": "ORD", "depHour": 17, "depMinute": 25, "durationMin": 140, "status": "scheduled", "delayMinutes": 0, "terminal": "B", "gate": "B62", "aircraft": "A321" },
+    { "flightIata": "HA11", "airline": { "name": "Hawaiian Airlines", "iata": "HA" }, "origin": "HNL", "destination": "LAX", "depHour": 10, "depMinute": 40, "durationMin": 340, "status": "scheduled", "delayMinutes": 0, "terminal": "1", "gate": "7", "aircraft": "A330" },
+    { "flightIata": "OO5400", "airline": { "name": "SkyWest Airlines", "iata": "OO" }, "origin": "SLC", "destination": "DEN", "depHour": 8, "depMinute": 50, "durationMin": 95, "status": "scheduled", "delayMinutes": 0, "terminal": "2", "gate": "C4", "aircraft": "E75L" }
+  ]
+}
