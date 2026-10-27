@@ -155,8 +155,9 @@ client `.env`: `VITE_API_URL=http://localhost:5000`.
 Recommended low-effort set: SHAP + gauge + risk map + delay-cause + trends.
 
 ## 14. BUILD STATUS (update as you go)
-- [x] Step 1 folder structure   [x] Step 2 decisions 1-12 locked   [x] `bootstrap.py` run
-- [x] Server foundation: env, db, cors, app, server, utils, errorHandler, auth/role middleware, validators, models, auth + user controllers/routes, routes/index with /health
+- [x] Step 1 folder structure   [x] Step 2 decisions 1-12 locked   [ ] `bootstrap.py` run (not on disk; scaffold is rebuilt by hand in Phase 1)
+- NOTE (2026-10-27): earlier checkmarks described code written in a chat that never existed on disk. Everything below is treated as unbuilt until verified.
+- [ ] Server foundation: env, db, cors, app, server, utils, errorHandler, auth/role middleware, validators, models, auth + user controllers/routes, routes/index with /health
 - [ ] Server: cacheService, aviationStackService, openMeteoService, mlClientService, flight/prediction/analytics/savedSearch/admin controllers+routes, rateLimiter, upload, alertService, riskAlertJob, tests
 - [ ] ML training: config, data_cleaning (parquet), feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background
 - [ ] ML serving: config, security, main (lifespan), schemas, model_loader, feature_builder, weather_severity, predictor, explainer, duckdb_service, routes
