@@ -159,7 +159,9 @@ Recommended low-effort set: SHAP + gauge + risk map + delay-cause + trends.
 - NOTE (2026-10-27): earlier checkmarks described code written in a chat that never existed on disk. Everything below is treated as unbuilt until verified.
 - [ ] Server foundation: env, db, cors, app, server, utils, errorHandler, auth/role middleware, validators, models, auth + user controllers/routes, routes/index with /health
 - [ ] Server: cacheService, aviationStackService, openMeteoService, mlClientService, flight/prediction/analytics/savedSearch/admin controllers+routes, rateLimiter, upload, alertService, riskAlertJob, tests
-- [ ] ML training: config, data_cleaning (parquet), feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background
+- [x] Phase 1 monorepo scaffold (empty files except seeded configs); ml-service venv on Python 3.11
+- [x] Phase 2 dataset: `training/config.py` real column map + `training/data_cleaning.py --to-parquet` run OK (see 15b)
+- [ ] ML training: ~~config, data_cleaning (parquet)~~ (done),  feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background
 - [ ] ML serving: config, security, main (lifespan), schemas, model_loader, feature_builder, weather_severity, predictor, explainer, duckdb_service, routes
 - [ ] Client: theme, auth, axios, queryClient, routes, layouts, common components, pages, charts, map
 - [ ] Docker + docker-compose + CI + deploy configs
@@ -184,6 +186,19 @@ Suggested next order: ML training (longest lead time, everything else depends on
 | Render ml-service OOM | too many models/artifacts loaded | keep XGBoost only (Decision 7) |
 | SHAP slow | explainer rebuilt per request | build once in lifespan |
 | Leaflet icons missing / map blank | CSS or default icon path | `import 'leaflet/dist/leaflet.css'`; give the map container a fixed height |
+
+### 15b. Dataset reality vs original design (verified 2026-10-27, confirmed by user)
+Files in `data/`: `US_flights_2023.csv` (main, 6,743,404 non-cancelled non-diverted rows), `Cancelled_Diverted_2023.csv` (87,936 cancelled + 16,552 diverted), `weather_meteo_by_airport.csv` (DAILY weather: tavg,tmin,tmax,prcp,snow,wdir,wspd,pres), `airports_geolocation.csv`. `maj us flight - january 2024.csv` is ignored (misleading name, header identical to main).
+Deviations from sections 9/10 (none touch section 4):
+- No visibility column, so `visibility_km` stays in the API as optional but is NOT a model feature. Weather is daily, not hourly.
+- No scheduled clock time or flight number: time feature = `DepTime_label` (Night/Morning/Afternoon/Evening). `/predict` maps `scheduled_departure.hour` to a label.
+- No distance in miles: computed by haversine from airport coordinates (`distance_miles`).
+- Leakage (never features): Dep_Delay, Dep_Delay_Tag, Dep_Delay_Type, Arr_Delay_Type, Flight_Duration, Delay_* causes. Tail_Number is an identifier, not a feature.
+- Aircraft columns (Manufacturer, Model, Aicraft_age [sic]) exist only for non-cancelled flights: optional features, missing -> "unknown".
+- Cancelled rows have no distinguishing columns, so exact-duplicate removal dropped 945 of them (about 1%); 43 other rows dropped as invalid. Final: 6,830,352 flights, 86,991 cancelled, 1,386,688 with arr_delay >= 15.
+- Delay rate by month: about 22% Jan-Sep (peak 28.6% Jul), about 14-16% Oct-Dec. Expect a test-vs-validation shift (see section 15 row on time-split).
+- Parquet is month-partitioned: `data/processed/flights/flights_MM.parquet` (glob in `training/config.py`), built month-by-month in DuckDB with a 1.5 GB memory cap because the dev machine has ~8 GB RAM and ~3.5 GB free disk.
+- DuckDB 2.x: relations have no `.fetchone()`; use `con.execute(...).fetchone()`.
 
 ## 16. HOW TO CHANGE SOMETHING
 1. Find the decision number in section 4. Tell the assistant: "Changing Decision N from X to Y."
