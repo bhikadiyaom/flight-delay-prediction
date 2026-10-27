@@ -162,7 +162,7 @@ Recommended low-effort set: SHAP + gauge + risk map + delay-cause + trends.
 - [x] Phase 1 monorepo scaffold (empty files except seeded configs); ml-service venv on Python 3.11
 - [x] Phase 2 dataset: `training/config.py` real column map + `training/data_cleaning.py --to-parquet` run OK (see 15b)
 - [x] ML training (group A): config, data_cleaning, feature_engineering, encoders, trainers x4, regressor, calibrate, evaluate, compare_models, shap background, shared feature_builder/holidays/weather_severity, 7 notebooks; `tests/test_feature_builder.py` passes (6). See 15c.
-- [ ] ML serving: config, security, main (lifespan), schemas, model_loader, feature_builder, weather_severity, predictor, explainer, duckdb_service, routes
+- [x] ML serving (group B): config, security, main (lifespan), schemas, model_loader, feature_builder, weather_severity, predictor, explainer, metrics_service, duckdb_service, airport_lookup, 4 routers; 49 tests pass; service started and every route hit live. See 15d.
 - [ ] Client: theme, auth, axios, queryClient, routes, layouts, common components, pages, charts, map
 - [ ] Docker + docker-compose + CI + deploy configs
 - [ ] Docs (architecture, api-spec, ml-methodology, report)
@@ -212,6 +212,15 @@ Deviations / choices (none change section 4):
 - Test results, delay task (Oct-Dec): logreg AUC 0.646 / F1 0.317; random forest (300k rows) 0.657 / 0.325; **xgboost 0.661 / 0.330 (production, Brier 0.124 calibrated vs 0.201 raw)**; neural net 0.651 / 0.321. Cancel xgboost AUC 0.706. All models cluster within 0.015 AUC: the limit is information (no clock time, no departure state), not model class.
 - Artifacts (models, calibrators, encoders, lookups, metrics, SHAP background) are COMMITTED (small) so the ml-service image can be built from the repo; raw/processed data and `artifacts_sample/` are not.
 - Run order: `python -m training.data_cleaning --to-parquet` -> `training.feature_engineering` -> `train_xgboost` -> `train_regressor` -> `train_baseline` -> `train_random_forest` -> `train_neural_net` -> `train_xgboost --random-split` -> `generate_shap_background` -> `compare_models`. Use `--sample 0.15` on any trainer for a proving run (writes to `artifacts_sample/`). Always run from `ml-service/` (set `PYTHONPATH=.` for ad-hoc scripts).
+
+### 15d. ML serving as built (Phase 3B)
+- Run: `cd ml-service; venv\Scripts\python -m uvicorn app.main:app --port 8000`. `.env` holds a generated `INTERNAL_API_KEY` (git-ignored); the server's `ML_INTERNAL_KEY` must equal it (group C copies it).
+- Contract additions (backward compatible): `WeatherInput.temperature_min_c` (optional, freeze flag; else min = mean - 5.1 C), `POST /predict/batch` body is `{"items": [...]}` (1-500) and returns `{"results": [...], "model_version"}`. `visibility_km` is accepted but ignored (no visibility in the dataset). Weather units are DAILY: C, mm/day, km/h, snowfall cm/day. Airline accepts IATA code, short name or exact training name (`resolve_airline`).
+- Extra routes: `GET /analytics/airports`, `GET /analytics/airlines` (autocomplete lists; airports come from committed `data/external/airports.csv`, so serving does not need the parquet). `GET /analytics/historical` needs `origin` or `dest` (422 otherwise) and takes `dest` (not `destination`), optional `date`, `airline`, `limit` <= 500. `GET /analytics/trends?granularity=day|week|month&origin=&airline=`; `GET /analytics/risk-map?min_flights=3000`.
+- `/health` also requires the key (contract: all routes). Render/Docker health checks must send `X-Internal-Key`, or probe the Node `/health` instead.
+- Startup fails fast: missing artifact, empty manifest, feature-list mismatch, model/feature count mismatch, metrics version != manifest version. Missing flights parquet does NOT fail startup: `analytics_available=false`, `/analytics/{overview,historical,risk-map,trends}` answer 503 (ship the 145 MB parquet or mount it for full functionality; see deployment guide).
+- Observed: first `/predict` 95 ms (SHAP ~7 ms), batch of 500 in 118 ms, cold overview 1.6 s then 47 ms cached; RSS about 300 MB serving, peak 629 MB during a cold analytics scan with the default 1GB DuckDB limit. On a 512 MB host set `DUCKDB_MEMORY_LIMIT=300MB`.
+- Tests: `cd ml-service; set PYTHONPATH=.; venv\Scripts\python -m pytest tests -q` -> 49 pass (auth on every route, contract rules, warnings, batch == single, 500 limit, SQL-injection style inputs, SHAP additivity, fail-fast loading).
 
 ## 16. HOW TO CHANGE SOMETHING
 1. Find the decision number in section 4. Tell the assistant: "Changing Decision N from X to Y."
