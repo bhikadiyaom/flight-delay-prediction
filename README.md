@@ -4,6 +4,8 @@ A full-stack machine-learning web app (Sem 7 capstone). Enter a US flight, or lo
 probability of a delay (15+ min) or a cancellation**, a typical delay length, and the **five factors behind the score**. It also offers live
 status and weather, a searchable 2023 history, airport risk map, model comparison, saved searches with email alerts, and bulk CSV scoring.
 
+> **New to this repo, or setting it up on another PC? Read [START-HERE.md](START-HERE.md) first.** It covers setup, git/GitHub pitfalls, an error decision tree and the one open issue.
+
 Trained on **6.8 million US flights from 2023** (Kaggle `bordanova/2023-us-civil-flights-delay-meteo-and-aircraft`) and evaluated on months the models never saw.
 
 | | |
